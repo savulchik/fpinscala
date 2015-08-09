@@ -54,6 +54,8 @@ trait Stream[+A] {
       else b
     }
 
+  def append[B >: A](b: => Stream[B]): Stream[B] = foldRight(b) { (a, b) => cons(a, b) }
+
   def startsWith[B](s: Stream[B]): Boolean = sys.error("todo")
 
   def toList: List[A] = foldRight(List.empty[A])(_ :: _)
