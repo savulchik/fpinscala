@@ -80,10 +80,15 @@ object Stream {
 
   val ones: Stream[Int] = Stream.cons(1, ones)
   def constant[A](a: A): Stream[A] = {
-    val c = cons(a, c)
+    lazy val c: Stream[A] = cons(a, c)
     c
   }
   def from(n: Int): Stream[Int] = cons(n, from(n + 1))
+
+  val fibs: Stream[Int] = {
+    def go(a: Int, b: Int): Stream[Int] = cons(a, go(b, a + b))
+    go(0, 1)
+  }
 
   def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = sys.error("todo")
 }
