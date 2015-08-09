@@ -83,7 +83,7 @@ object Stream {
     val c = cons(a, c)
     c
   }
-  def from(n: Int): Stream[Int] = sys.error("todo")
+  def from(n: Int): Stream[Int] = cons(n, from(n + 1))
 
   def unfold[A, S](z: S)(f: S => Option[(A, S)]): Stream[A] = sys.error("todo")
 }
