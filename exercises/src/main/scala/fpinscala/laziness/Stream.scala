@@ -48,6 +48,12 @@ trait Stream[+A] {
   // writing your own function signatures.
   def map[B](f: A => B): Stream[B] = foldRight(empty[B]) { (a, b) => cons(f(a), b) }
 
+  def filter(p: A => Boolean): Stream[A] =
+    foldRight(empty[A]) { (a, b) =>
+      if (p(a)) cons(a, b)
+      else b
+    }
+
   def startsWith[B](s: Stream[B]): Boolean = sys.error("todo")
 
   def toList: List[A] = foldRight(List.empty[A])(_ :: _)
