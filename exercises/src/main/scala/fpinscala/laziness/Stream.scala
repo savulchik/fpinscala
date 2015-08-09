@@ -1,6 +1,9 @@
 package fpinscala.laziness
 
 import Stream._
+
+import scala.annotation.tailrec
+
 trait Stream[+A] {
 
   def foldRight[B](z: => B)(f: (A, => B) => B): B = // The arrow `=>` in front of the argument type `B` means that the function `f` takes its second argument by name and may choose not to evaluate it.
@@ -31,13 +34,11 @@ trait Stream[+A] {
       case Cons(_, t) => t().drop(n - 1)
     }
 
-  def takeWhile(p: A => Boolean): Stream[A] = this match {
-    case Empty => empty
-    case Cons(h, t) =>
-      val v = h()
-      if (p(v)) cons(v, t().takeWhile(p))
+  def takeWhile(p: A => Boolean): Stream[A] =
+    foldRight(empty[A]) { (a, b) =>
+      if (p(a)) cons(a, b)
       else empty
-  }
+    }
 
   def forAll(p: A => Boolean): Boolean = foldRight(true) { (a, b) => p(a) && b }
 
