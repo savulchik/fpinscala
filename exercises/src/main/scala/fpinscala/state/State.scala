@@ -1,5 +1,7 @@
 package fpinscala.state
 
+import scala.annotation.tailrec
+
 
 trait RNG {
   def nextInt: (Int, RNG) // Should generate a random `Int`. We'll later define other functions in terms of `nextInt`.
@@ -30,17 +32,60 @@ object RNG {
       (f(a), rng2)
     }
 
-  def nonNegativeInt(rng: RNG): (Int, RNG) = ???
+  def nonNegativeInt(rng: RNG): (Int, RNG) = {
+    val (i, next) = rng.nextInt
+    val r =
+      if (i >= 0) i
+      else if (i == Int.MinValue) 0
+      else -i
+    (r, next)
+  }
 
-  def double(rng: RNG): (Double, RNG) = ???
+  def double(rng: RNG): (Double, RNG) = {
+    val (nni, next) = nonNegativeInt(rng)
+    val r =
+      if (nni == Int.MaxValue) 0d
+      else nni.toDouble / Int.MaxValue
+    (r, next)
+  }
 
-  def intDouble(rng: RNG): ((Int,Double), RNG) = ???
+  def intDouble(rng: RNG): ((Int,Double), RNG) = {
+    val (i, next1) = rng.nextInt
+    val (d, next2) = double(next1)
+    ((i, d), next2)
+  }
 
-  def doubleInt(rng: RNG): ((Double,Int), RNG) = ???
+  def doubleInt(rng: RNG): ((Double,Int), RNG) = {
+    val ((i, d), next) = intDouble(rng)
+    ((d, i), next)
+  }
 
-  def double3(rng: RNG): ((Double,Double,Double), RNG) = ???
+  def double3(rng: RNG): ((Double,Double,Double), RNG) = {
+    val (d1, next1) = double(rng)
+    val (d2, next2) = double(next1)
+    val (d3, next3) = double(next2)
+    ((d1, d2, d3), next3)
+  }
 
-  def ints(count: Int)(rng: RNG): (List[Int], RNG) = ???
+  def ints1(count: Int)(rng: RNG): (List[Int], RNG) = {
+    @tailrec
+    def loop(acc: List[Int], count: Int, state: RNG): (List[Int], RNG) = {
+      if (count == 0) (acc, state)
+      else {
+        val (i, next) = state.nextInt
+        loop(i :: acc, count - 1, next)
+      }
+    }
+    loop(List.empty[Int], count, rng)
+  }
+
+  def ints(count: Int)(rng: RNG): (List[Int], RNG) = {
+    1.to(count).foldLeft((List.empty[Int], rng)) { (z, _) =>
+      val (acc, curr) = z
+      val (i, next) = curr.nextInt
+      (i :: acc, next)
+    }
+  }
 
   def map2[A,B,C](ra: Rand[A], rb: Rand[B])(f: (A, B) => C): Rand[C] = ???
 
