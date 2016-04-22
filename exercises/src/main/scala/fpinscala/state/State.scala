@@ -140,5 +140,15 @@ object State {
     }
 
   type Rand[A] = State[RNG, A]
-  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] = ???
+  def simulateMachine(inputs: List[Input]): State[Machine, (Int, Int)] =
+    State { initial =>
+      val res = inputs.foldLeft(initial) { (m, input) =>
+        input match {
+          case Coin if m.locked && m.candies > 0 => m.copy(locked = false, coins = m.coins + 1)
+          case Turn if !m.locked => m.copy(locked = true, candies = m.candies - 1)
+          case _ => m
+        }
+      }
+      ((res.coins, res.candies), res)
+    }
 }
