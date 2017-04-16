@@ -47,8 +47,13 @@ object Monoid {
   }
 
   def endoMonoid[A]: Monoid[A => A] = new Monoid[(A) => A] {
-    def op(a1: (A) => A, a2: (A) => A) = a1 andThen a2
+    def op(a1: (A) => A, a2: (A) => A) = a1 compose a2
     def zero = identity
+  }
+
+  def dual[B](m: Monoid[B]): Monoid[B] = new Monoid[B] {
+    def op(b1: B, b2: B): B = m.op(b2, b1)
+    def zero: B = m.zero
   }
 
   // TODO: Placeholder for `Prop`. Remove once you have implemented the `Prop`
@@ -68,7 +73,7 @@ object Monoid {
   }
 
   def concatenate[A](as: List[A], m: Monoid[A]): A =
-    ???
+    as.foldRight(m.zero)(m.op)
 
   def foldMap[A, B](as: List[A], m: Monoid[B])(f: A => B): B =
     as.map(f).foldLeft(m.zero)(m.op)
@@ -79,11 +84,16 @@ object Monoid {
 
   def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B): B = {
     val g = (a: A) => (b: B) => f(b, a)
-    foldMap(as, endoMonoid[B])(g)(z)
+    foldMap(as, dual(endoMonoid[B]))(g)(z)
   }
 
   def foldMapV[A, B](as: IndexedSeq[A], m: Monoid[B])(f: A => B): B =
-    ???
+    if (as.isEmpty) m.zero
+    else if (as.length == 1) f(as.head)
+    else {
+      val (left, right) = as.splitAt(as.length / 2)
+      m.op(foldMapV(left, m)(f), foldMapV(right, m)(f))
+    }
 
   def ordered(ints: IndexedSeq[Int]): Boolean =
     ???
@@ -98,18 +108,40 @@ object Monoid {
   def parFoldMap[A,B](v: IndexedSeq[A], m: Monoid[B])(f: A => B): Par[B] = 
     ???
 
-  val wcMonoid: Monoid[WC] = ???
+  def wcMonoid: Monoid[WC] = new Monoid[WC] {
+    def op(wc1: WC, wc2: WC) =
+      (wc1, wc2) match {
+        case (Stub(l), Stub(r)) => Stub(l + r)
+        case (Stub(chars), Part(l, count, r)) => Part(chars + l, count, r)
+        case (Part(l, count, r), Stub(chars)) => Part(l, count, r + chars)
+        case (Part(l1, count1, r1), Part(l2, count2, r2)) =>
+          val extraWords = if ((r1 + l2).isEmpty) 0 else 1
+          Part(l1, count1 + count2 + extraWords, r2)
+      }
 
-  def count(s: String): Int = ???
+    def zero = Stub("")
+  }
+
+  def count(s: String): Int = 
+    ???
 
   def productMonoid[A,B](A: Monoid[A], B: Monoid[B]): Monoid[(A, B)] =
-    ???
+    new Monoid[(A, B)] {
+      def op(t1: (A, B), t2: (A, B)) = (A.op(t1._1, t2._1), B.op(t1._2, t2._2))
+      def zero = (A.zero, B.zero)
+    }
 
   def functionMonoid[A,B](B: Monoid[B]): Monoid[A => B] =
-    ???
+    new Monoid[A => B] {
+      def op(f: A => B, g: A => B) = a => B.op(f(a), g(a))
+      def zero = _ => B.zero
+    }
 
   def mapMergeMonoid[K,V](V: Monoid[V]): Monoid[Map[K, V]] =
-    ???
+    new Monoid[Map[K, V]] {
+      def op(m1: Map[K, V], m2: Map[K, V]) = m1 ++ m2.map { case (k, v) => k -> V.op(m1.getOrElse(k, V.zero), v) }
+      def zero = Map.empty
+    }
 
   def bag[A](as: IndexedSeq[A]): Map[A, Int] =
     ???
