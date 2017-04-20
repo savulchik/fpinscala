@@ -151,28 +151,29 @@ trait Foldable[F[_]] {
   import Monoid._
 
   def foldRight[A, B](as: F[A])(z: B)(f: (A, B) => B): B =
-    ???
+    foldMap(as)(f.curried)(endoMonoid[B])(z)
 
-  def foldLeft[A, B](as: F[A])(z: B)(f: (B, A) => B): B =
-    ???
+  def foldLeft[A, B](as: F[A])(z: B)(f: (B, A) => B): B = {
+    val g = (a: A) => (b: B) => f(b, a)
+    foldMap(as)(g)(dual(endoMonoid[B]))(z)
+  }
 
   def foldMap[A, B](as: F[A])(f: A => B)(mb: Monoid[B]): B =
-    ???
+    foldRight(as)(mb.zero)((a, b) => mb.op(f(a), b))
 
   def concatenate[A](as: F[A])(m: Monoid[A]): A =
-    ???
+    foldRight(as)(m.zero)(m.op)
 
   def toList[A](as: F[A]): List[A] =
-    ???
+    foldRight(as)(List.empty[A])(_ :: _)
 }
 
 object ListFoldable extends Foldable[List] {
   override def foldRight[A, B](as: List[A])(z: B)(f: (A, B) => B) =
-    ???
+    as.foldRight(z)(f)
+
   override def foldLeft[A, B](as: List[A])(z: B)(f: (B, A) => B) =
-    ???
-  override def foldMap[A, B](as: List[A])(f: A => B)(mb: Monoid[B]): B =
-    ???
+    as.foldLeft(z)(f)
 }
 
 object IndexedSeqFoldable extends Foldable[IndexedSeq] {
